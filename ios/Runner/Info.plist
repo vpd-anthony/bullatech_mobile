@@ -2,6 +2,16 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+
+	<key>NSCameraUsageDescription</key>
+	<string>This app needs camera access to scan barcodes.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app needs photo library access to scan barcodes from images.</string>
+
+	<!-- Add this for Face ID permission -->
+    <key>NSFaceIDUsageDescription</key>
+    <string>We need to use Face ID to authenticate you quickly and securely</string>
+
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>

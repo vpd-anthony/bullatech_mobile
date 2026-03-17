@@ -5,7 +5,7 @@ class AppColors {
   AppColors._();
 
   // ========== Primary Colors ========== FF7D29
-  static const Color primary = Color.fromRGBO(255, 125, 41, 1); // Blue
+  static const Color primary = Color(0xFF222831); // Black
 
   static const Color primaryLight = Color(0xFF64B5F6);
   static const Color primaryDark = Color(0xFF222222);

@@ -1,0 +1,79 @@
+name: Flutter APK Build
+
+on:
+  pull_request:
+    branches: 
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Cache Pub packages and Dart tool
+      - name: Cache Pub & Dart Tool
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.pub-cache
+            .dart_tool
+          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
+
+      # 3. Cache Gradle
+      - name: Cache Gradle
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      # 4. Install Java 17
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # 5. Setup Flutter
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.13.9"
+
+      # 6. Install dependencies
+      - name: Flutter pub get
+        run: flutter pub get
+
+      # 7. Create .env file
+      - name: Create .env
+        run: |
+          echo "IS_DEVELOPMENT=false" > .env
+          echo "BASE_URL_PROD=https://veractdemo.ascendcoreph.com/api" >> .env
+
+      # 8. Generate Freezed/JSON files
+      - name: Build Runner
+        run: flutter pub run build_runner build --delete-conflicting-outputs
+
+      # 9. Remove Gradle Java Home override
+      - name: Remove Gradle Java Home override
+        run: sed -i '/org.gradle.java.home/d' android/gradle.properties
+
+      # 10. Build APK
+      - name: Build APK
+        run: flutter build apk --release --no-tree-shake-icons --no-shrink
+
+      # 11. Upload APK Artifact
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk

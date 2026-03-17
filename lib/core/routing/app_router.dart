@@ -1,4 +1,6 @@
+import 'package:bullatech/core/routing/auth_redirect.dart';
 import 'package:bullatech/core/routing/routes/auth_routes.dart';
+import 'package:bullatech/core/routing/routes/helpdesk_employee_shell_routes.dart';
 import 'package:bullatech/main.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -8,15 +10,15 @@ part 'app_router.g.dart';
 
 @Riverpod(keepAlive: true)
 GoRouter appRouter(final Ref ref) {
-  // const authRedirect = AuthRedirect();
+  const authRedirect = AuthRedirect();
 
   return GoRouter(
     navigatorKey: navigatorKey,
     initialLocation: '/',
     debugLogDiagnostics: true,
-    // redirect: (final context, final state) {
-    //   return authRedirect(ref, state);
-    // },
-    routes: [...AuthRoutes.routes],
+    redirect: (final context, final state) {
+      return authRedirect(ref, state);
+    },
+    routes: [...AuthRoutes.routes, HelpdeskEmployeeShellRoutes.route],
   );
 }
