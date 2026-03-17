@@ -1,0 +1,15 @@
+enum TransitionType {
+  slideRight,
+  slideLeft,
+  slideUp,
+  slideDown,
+  fade,
+  scale,
+  rotation,
+  slideRightWithFade,
+  slideLeftWithFade,
+  slideUpWithFade,
+  slideDownWithFade,
+  scaleWithFade,
+  none,
+}

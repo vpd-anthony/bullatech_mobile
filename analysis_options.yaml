@@ -1,0 +1,27 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    - '**/*.g.dart'
+    - '**/*.freezed.dart'
+  errors:
+    invalid_annotation_target: ignore 
+
+linter:
+  rules:
+    # --- Type inference / auto-like rules ---
+    - omit_local_variable_types       # use var/final/const instead of explicit types
+    - prefer_final_locals             # prefer final for local variables
+    - prefer_final_in_for_each        # prefer final in for-each loops
+    - prefer_const_declarations       # prefer const for local vars when possible
+    - prefer_const_constructors       # use const constructors when possible
+    - unnecessary_const               # remove redundant const
+
+    # --- Encourage immutability ---
+    - prefer_final_fields             # make class fields final if never reassigned
+    - prefer_final_parameters         # mark parameters as final
+    - parameter_assignments           # disallow reassigning function parameters
+
+    # --- Optional clean code rules ---
+    - always_declare_return_types     # require return types on functions/methods
+    - avoid_unnecessary_containers
