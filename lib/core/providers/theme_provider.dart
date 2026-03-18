@@ -4,10 +4,6 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'theme_provider.g.dart';
 
-final themeStorageServiceProvider = Provider<ThemeStorageService>((final ref) {
-  return ThemeStorageService();
-});
-
 @riverpod
 class AppThemeModeNotifier extends _$AppThemeModeNotifier {
   @override
