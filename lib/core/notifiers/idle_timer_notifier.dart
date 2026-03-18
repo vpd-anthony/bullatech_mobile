@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:bullatech/common/constants/app_constants.dart';
+import 'package:bullatech/core/providers/websocket_provider.dart';
 import 'package:bullatech/core/services/notification_service.dart';
 import 'package:bullatech/main.dart';
 import 'package:flutter/material.dart';
