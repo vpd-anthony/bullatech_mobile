@@ -1,6 +1,7 @@
 import 'package:bullatech/common/widget/forms/rounded_button.dart';
 import 'package:bullatech/common/widget/forms/rounded_text_field.dart';
 import 'package:bullatech/core/listeners/api_response_listener.dart';
+import 'package:bullatech/core/providers/websocket_provider.dart';
 import 'package:bullatech/core/theme/app_colors.dart';
 import 'package:bullatech/core/theme/app_theme.dart';
 import 'package:bullatech/features/auth/data/dtos/login_request_dto.dart';
@@ -9,6 +10,7 @@ import 'package:bullatech/features/auth/presentation/controllers/auth_login_cont
 import 'package:bullatech/features/auth/presentation/providers/biometric_providers.dart';
 import 'package:bullatech/features/auth/presentation/widgets/layouts/auth_card.dart';
 import 'package:bullatech/features/auth/presentation/widgets/layouts/auth_scaffold.dart';
+import 'package:bullatech/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -88,8 +90,10 @@ class _InitialLoginScreenState extends ConsumerState<InitialLoginScreen> {
         next.whenData((final loginResponse) async {
           if (loginResponse == null) return;
 
-          if (!mounted) return;
-          context.go('/helpdesk/employee/ticket-list');
+          // final wsService = ref.read(websocketServiceProvider);
+          // await wsService.init(navigatorKey, channels: [
+          //   'tickets',
+          // ]);
 
           final biometricAvailable =
               await ref.read(biometricServiceProvider).isBiometricAvailable();
@@ -101,6 +105,9 @@ class _InitialLoginScreenState extends ConsumerState<InitialLoginScreen> {
             await ref.read(biometricServiceProvider).setBiometricEnabled(true);
             ref.invalidate(isBiometricEnabledProvider);
           }
+
+          if (!mounted) return;
+          context.go('/helpdesk/employee/ticket-list');
 
           _clearForm();
         });

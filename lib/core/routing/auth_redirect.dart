@@ -14,10 +14,6 @@ class AuthRedirect {
 
     final employeeUser = await authService.getEmployeeUser();
 
-    if (kDebugMode || employeeUser == null) {
-      await authService.logEmployeeUserDetails();
-    }
-
     const passwordOnlyLogin = '/password-only-login';
 
     // 🔒 Handle passwordExpired → redirect to password-only-login
@@ -32,24 +28,28 @@ class AuthRedirect {
     if (location.startsWith(passwordOnlyLogin)) return null;
 
     // Normal pincode flow
-    final pincodeService = ref.read(pincodeServiceProvider);
+    // final pincodeService = ref.read(pincodeServiceProvider);
 
-    final hasPincode = await pincodeService.hasPincode();
+    // final hasPincode = await pincodeService.hasPincode();
 
     final isHelpdesk = location.startsWith('/helpdesk');
-    final isPincodeLogin = location == '/pincode-login';
-    final isPincodeSetup = location == '/pincode-setup';
+    // final isPincodeLogin = location == '/pincode-login';
+    // final isPincodeSetup = location == '/pincode-setup';
 
     if (employeeUser != null) {
       // Already inside allowed routes → allow
       if (isHelpdesk) return null;
 
-      // Correct pincode screens → allow
-      if (hasPincode && isPincodeLogin) return null;
-      if (!hasPincode && isPincodeSetup) return null;
+      // // Correct pincode screens → allow
+      // if (hasPincode && isPincodeLogin) return null;
+      // if (!hasPincode && isPincodeSetup) return null;
 
-      // Force correct pincode routes
-      return hasPincode ? '/pincode-login' : '/pincode-setup';
+      await authService.logEmployeeUserDetails();
+
+      // // Force correct pincode routes
+      // return hasPincode ? '/pincode-login' : '/pincode-setup';
+
+      return '/helpdesk/employee/ticket-list';
     }
 
     // Not logged in → allow normal routes (login, signup, etc.)

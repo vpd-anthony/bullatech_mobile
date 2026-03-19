@@ -41,7 +41,7 @@ dependencies:
   image_gallery_saver2_fixed: 2.0.9
   uuid: 3.0.7
   device_info_plus: 9.0.2
-  pusher_channels_flutter: 2.2.1
+  web_socket_channel: 2.4.0
 
 dev_dependencies:
   flutter_test:

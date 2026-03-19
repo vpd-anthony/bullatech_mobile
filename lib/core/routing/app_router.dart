@@ -1,7 +1,7 @@
-import 'package:bullatech/core/providers/websocket_provider.dart';
 import 'package:bullatech/core/routing/auth_redirect.dart';
 import 'package:bullatech/core/routing/routes/auth_routes.dart';
 import 'package:bullatech/core/routing/routes/helpdesk_employee_shell_routes.dart';
+import 'package:bullatech/main.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';

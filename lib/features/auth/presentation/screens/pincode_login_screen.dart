@@ -1,4 +1,5 @@
 import 'package:bullatech/common/widget/blocking_loading_overlay.dart';
+import 'package:bullatech/core/providers/websocket_provider.dart';
 import 'package:bullatech/core/theme/app_colors.dart';
 import 'package:bullatech/core/theme/app_theme.dart';
 import 'package:bullatech/features/auth/presentation/controllers/biometric_controller.dart';
@@ -8,6 +9,7 @@ import 'package:bullatech/features/auth/presentation/widgets/layouts/auth_card.d
 import 'package:bullatech/features/auth/presentation/widgets/layouts/auth_scaffold.dart';
 import 'package:bullatech/features/auth/presentation/widgets/pincode_input.dart';
 import 'package:bullatech/features/auth/presentation/widgets/pincode_keyboard.dart';
+import 'package:bullatech/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -164,9 +166,14 @@ class _PincodeLoginScreenState extends ConsumerState<PincodeLoginScreen> {
     if (isValid) {
       HapticFeedback.mediumImpact();
 
+      // final wsService = ref.read(websocketServiceProvider);
+      // await wsService.init(navigatorKey, channels: [
+      //   'tickets',
+      // ]);
+
       // Safe navigation after dialog hidden
       WidgetsBinding.instance.addPostFrameCallback((final _) {
-        context.go('/helpdesk/dashboard');
+        context.go('/helpdesk/employee/ticket-list');
       });
     } else {
       HapticFeedback.vibrate();
@@ -198,7 +205,14 @@ class _PincodeLoginScreenState extends ConsumerState<PincodeLoginScreen> {
 
     if (success && mounted) {
       HapticFeedback.mediumImpact();
-      context.go('/helpdesk/dashboard');
+
+      // final wsService = ref.read(websocketServiceProvider);
+      // await wsService.init(navigatorKey, channels: [
+      //   'tickets',
+      // ]);
+
+      if (!mounted) return;
+      context.go('/helpdesk/employee/ticket-list');
     } else {
       if (!mounted) return;
       setState(() {

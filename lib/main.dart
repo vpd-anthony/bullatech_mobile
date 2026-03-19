@@ -1,4 +1,6 @@
 import 'package:bullatech/app.dart';
+import 'package:bullatech/core/enums/auth/auth_status.dart';
+import 'package:bullatech/core/notifiers/auth_status_notifier.dart';
 import 'package:bullatech/core/providers/theme_provider.dart';
 import 'package:bullatech/core/providers/websocket_provider.dart';
 import 'package:bullatech/core/routing/app_router.dart';
@@ -9,6 +11,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,9 +38,21 @@ void main() async {
 
   await container.read(appThemeModeNotifierProvider.notifier).loadSavedTheme();
 
-  container.read(websocketServiceProvider);
-
   final router = container.read(appRouterProvider);
+
+  // --- Connect WebSocket at app start ---
+  final webSocketService = container.read(websocketServiceProvider);
+  await webSocketService.connect(navigatorKey, container);
+
+  container.listen<AuthStatus>(
+    authStatusNotifierProvider,
+    (final previous, final next) {
+      if (next == AuthStatus.authenticated) {
+        webSocketService.flushQueuedEvents(navigatorKey, container);
+      }
+    },
+    fireImmediately: true,
+  );
 
   runApp(
     UncontrolledProviderScope(

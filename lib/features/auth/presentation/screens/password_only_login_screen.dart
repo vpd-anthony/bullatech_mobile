@@ -2,6 +2,7 @@ import 'package:bullatech/common/widget/forms/rounded_button.dart';
 import 'package:bullatech/common/widget/forms/rounded_text_field.dart';
 import 'package:bullatech/core/listeners/api_response_listener.dart';
 import 'package:bullatech/core/notifiers/idle_timer_notifier.dart';
+import 'package:bullatech/core/providers/websocket_provider.dart';
 import 'package:bullatech/core/theme/app_colors.dart';
 import 'package:bullatech/core/theme/app_theme.dart';
 import 'package:bullatech/features/auth/data/dtos/password_only_login_request_dto.dart';
@@ -10,6 +11,7 @@ import 'package:bullatech/features/auth/presentation/controllers/auth_login_cont
 import 'package:bullatech/features/auth/presentation/providers/biometric_providers.dart';
 import 'package:bullatech/features/auth/presentation/widgets/layouts/auth_card.dart';
 import 'package:bullatech/features/auth/presentation/widgets/layouts/auth_scaffold.dart';
+import 'package:bullatech/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -80,6 +82,11 @@ class _PasswordOnlyLoginScreenState
           // Capture mounted before async calls
           if (!mounted) return;
 
+          // final wsService = ref.read(websocketServiceProvider);
+          // await wsService.init(navigatorKey, channels: [
+          //   'tickets',
+          // ]);
+
           final biometricAvailable =
               await ref.read(biometricServiceProvider).isBiometricAvailable();
           final biometricEnabled =
@@ -92,7 +99,7 @@ class _PasswordOnlyLoginScreenState
           }
 
           if (!mounted) return;
-          context.go('/helpdesk/dashboard');
+          context.go('/helpdesk/employee/ticket-list');
 
           _clearForm();
         });

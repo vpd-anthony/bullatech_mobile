@@ -22,7 +22,7 @@ class AuthLoginController extends _$AuthLoginController {
       final response = await service.login(dto);
 
       await ref.read(authStatusNotifierProvider.notifier).authenticated();
-      ref.read(idleTimerNotifierProvider.notifier).start();
+      // ref.read(idleTimerNotifierProvider.notifier).start();
 
       await NotificationService.init();
       await NotificationService.requestPermissionWithoutContext();
@@ -39,7 +39,7 @@ class AuthLoginController extends _$AuthLoginController {
       final response = await service.passwordOnlylogin(dto);
 
       await ref.read(authStatusNotifierProvider.notifier).authenticated();
-      ref.read(idleTimerNotifierProvider.notifier).start();
+      // ref.read(idleTimerNotifierProvider.notifier).start();
 
       return response;
     });

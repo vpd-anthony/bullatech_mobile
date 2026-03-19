@@ -1,5 +1,6 @@
 import 'package:bullatech/core/enums/auth/biometric_icon.dart';
 import 'package:bullatech/features/auth/data/repositories/biometric_repository.dart';
+import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
 
 class BiometricService {
@@ -37,7 +38,7 @@ class BiometricService {
 
   /// Authenticate using biometrics
   Future<bool> authenticate({
-    final String localizedReason = 'Please authenticate to continue',
+    final String localizedReason = '',
     final bool useErrorDialogs = true,
     final bool stickyAuth = true,
   }) async {
@@ -47,10 +48,10 @@ class BiometricService {
         options: AuthenticationOptions(
           useErrorDialogs: useErrorDialogs,
           stickyAuth: stickyAuth,
-          biometricOnly: true,
         ),
       );
     } catch (e) {
+      debugPrint(e.toString());
       return false;
     }
   }

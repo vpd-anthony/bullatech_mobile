@@ -74,3 +74,5 @@ pubspec.lock
 
 #Keystore files
 *.jks
+
+packages/
