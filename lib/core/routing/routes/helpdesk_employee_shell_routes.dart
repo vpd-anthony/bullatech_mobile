@@ -1,4 +1,5 @@
 import 'package:bullatech/common/layouts/helpdesk_employee_scaffold.dart';
+import 'package:bullatech/features/ticket_list/presentation/screens/drive_home_screen.dart';
 import 'package:bullatech/features/ticket_list/presentation/screens/ticket_list_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -14,7 +15,7 @@ class HelpdeskEmployeeShellRoutes {
           path: '/helpdesk/employee/ticket-list',
           pageBuilder: (final context, final state) => MaterialPage(
             key: state.pageKey,
-            child: const TicketListScreen(),
+            child: const DriverHomeScreen(),
           ),
         ),
       ],

@@ -32,6 +32,27 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+
+	<!-- Location Permissions -->
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>Bullatech needs your location to show you nearby rides and track your route.</string>
+    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>Bullatech needs your location in the background to track driver movement and update ETAs.</string>
+    <key>NSLocationAlwaysUsageDescription</key>
+    <string>Bullatech needs your location to provide real-time tracking for your ride.</string>
+
+	<!-- Background Modes -->
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>fetch</string>
+        <string>location</string>
+        <string>remote-notification</string>
+    </array>
+
+	<!-- Google Maps API Key -->
+    <key>GMSApiKey</key>
+	<string>$(GOOGLE_MAPS_API_KEY)</string>
+
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>

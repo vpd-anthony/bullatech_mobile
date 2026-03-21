@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:bullatech/core/notifiers/auth_status_notifier.dart';
+import 'package:bullatech/features/ticket_list/presentation/widgets/ticket_order_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/status.dart' as status;
@@ -105,22 +106,12 @@ class WebSocketService {
     // }
     _queuedEvents.add(data);
 
-    // Show dialog
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (final _) => AlertDialog(
-        title: const Text('New Assignment'),
-        content: Text(
-          'Ticket #${data['ticketId']} assigned\n'
-          'Tech IDs: ${data['technicalIds']}\n'
-          'Assigned by: ${data['assignedBy']}',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
-        ],
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (final _) => const TicketOrderWidget(
+        order: sampleOrder, // make sure sampleOrder is defined
       ),
     );
   }
