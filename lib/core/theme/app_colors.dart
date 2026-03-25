@@ -24,6 +24,7 @@ class AppColors {
   static const Color error = Color(0xFFF44336); // Red
   static const Color warning = Color(0xFFFF9800); // Orange
   static const Color info = Color(0xFF2196F3); // Blue
+  static const Color highlightInfo = Color.fromARGB(255, 25, 115, 189);
 
   // ========== Text Colors ==========
   static const Color textPrimary = Color(0xFF212121);

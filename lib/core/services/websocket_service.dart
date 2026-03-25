@@ -1,12 +1,17 @@
 import 'dart:convert';
-import 'package:bullatech/core/notifiers/auth_status_notifier.dart';
+import 'dart:developer';
+import 'dart:ffi';
+import 'package:bullatech/features/ticket_list/domain/models/tickets/ticket_data_model.dart';
+import 'package:bullatech/features/ticket_list/domain/models/tickets/ticket_event_model.dart';
+import 'package:bullatech/features/ticket_list/presentation/mappers/customer_info_mapper.dart';
+import 'package:bullatech/features/ticket_list/presentation/mappers/technical_assign_location_mapper.dart';
+import 'package:bullatech/features/ticket_list/presentation/mappers/ticket_order_mapper.dart';
 import 'package:bullatech/features/ticket_list/presentation/widgets/ticket_order_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/status.dart' as status;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:bullatech/core/enums/auth/auth_status.dart';
 
 class WebSocketService {
   IOWebSocketChannel? _channel;
@@ -55,11 +60,14 @@ class WebSocketService {
     _channel!.stream.listen(
       (final message) {
         try {
-          final data = jsonDecode(message);
+          final decoded = jsonDecode(message);
 
-          if (data['event'] == 'technical.assigned' &&
-              data['channel'] == 'tickets') {
-            final eventData = jsonDecode(data['data']);
+          if (decoded['event'] == 'technical.assigned') {
+            final rawData = decoded['data'];
+
+            // Laravel sends STRING sometimes
+            final eventData = rawData is String ? jsonDecode(rawData) : rawData;
+
             _handleTicketTechnicalAssignedEvent(
               Map<String, dynamic>.from(eventData),
               navigatorKey,
@@ -89,7 +97,6 @@ class WebSocketService {
     _channel = null;
   }
 
-  /// Handle ticket event
   void _handleTicketTechnicalAssignedEvent(
     final Map<String, dynamic> data,
     final GlobalKey<NavigatorState> navigatorKey,
@@ -98,31 +105,60 @@ class WebSocketService {
     final context = navigatorKey.currentContext;
     if (context == null) return;
 
-    // Check auth status
-    // final authStatus = container.read(authStatusNotifierProvider);
-    // if (authStatus != AuthStatus.authenticated) {
-    //   // Queue for later
-    //   return;
-    // }
-    _queuedEvents.add(data);
+    try {
+      final ticketEvent = TicketEvent.fromJson(data);
+      final ticket = ticketEvent.ticket;
+      final order = _mapToTicketOrder(ticket);
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (final _) => const TicketOrderWidget(
-        order: sampleOrder, // make sure sampleOrder is defined
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (final _) => TicketOrderWidget(
+          order: order,
+          onAccepted: () {
+            debugPrint('Ticket ${order.orderId} accepted');
+          },
+        ),
+      );
+    } catch (e) {
+      debugPrint('Ticket parsing error: $e');
+    }
+  }
+
+  TicketOrder _mapToTicketOrder(final TicketData ticket) {
+    final loc = ticket.technicalAssignsLocation;
+
+    return TicketOrder(
+      orderId: ticket.id.toString(),
+      ticketNo: ticket.ticketNo,
+      departure: TechnicalAssignLocation(
+        label: 'Departure',
+        name: 'Departure',
+        lat: loc!.departureLat,
+        lng: loc.departureLng,
+        address: loc.departureAddress,
+      ),
+      arrival: TechnicalAssignLocation(
+        label: 'Arrival',
+        name: 'Arrival',
+        lat: loc.arrivalLat,
+        lng: loc.arrivalLng,
+        address: loc.arrivalAddress,
+      ),
+      distanceKm: loc.distance,
+      estimatedMinutes: loc.eta,
+      customer: CustomerInfo(
+        name: ticket.customer?.name ?? 'Unknown',
+        phone: ticket.customer?.mobileNo ?? 'Unknown',
       ),
     );
   }
 
-  /// Call this after login to flush queued events
   void flushQueuedEvents(
     final GlobalKey<NavigatorState> navigatorKey,
     final ProviderContainer container,
   ) {
-    if (_queuedEvents.isEmpty) return;
-
     for (final event in _queuedEvents) {
       _handleTicketTechnicalAssignedEvent(event, navigatorKey, container);
     }

@@ -1,159 +1,14 @@
-// delivery_order_sheet.dart
-//
-// Drop this file into your project and show it from DriverHomeScreen:
-//
-//   showModalBottomSheet(
-//     context: context,
-//     isScrollControlled: true,
-//     backgroundColor: Colors.transparent,
-//     builder: (_) => TicketOrderWidget(order: sampleOrder),
-//   );
-//
-// Dependencies already in your project: flutter_riverpod, google_maps_flutter
-// No extra packages required.
-
 import 'dart:async';
+import 'package:bullatech/core/theme/app_colors.dart';
+import 'package:bullatech/features/ticket_list/presentation/mappers/ticket_order_mapper.dart';
 import 'package:bullatech/features/ticket_list/presentation/widgets/order_success_dialog.dart';
+import 'package:bullatech/features/ticket_list/presentation/widgets/stat_chip_widget.dart';
+import 'package:bullatech/features/ticket_list/presentation/widgets/stop_row_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-// ─────────────────────────────────────────────
-// Models
-// ─────────────────────────────────────────────
-
-enum PaymentMethod { cod, prepaid, wallet }
-
-class DeliveryStop {
-  final String label;
-  final String name;
-  final String address;
-  final String? note;
-
-  const DeliveryStop({
-    required this.label,
-    required this.name,
-    required this.address,
-    this.note,
-  });
-}
-
-class PackageInfo {
-  final String description;
-  final double weightKg;
-  final String size;
-  final List<String> tags;
-
-  const PackageInfo({
-    required this.description,
-    required this.weightKg,
-    required this.size,
-    this.tags = const [],
-  });
-}
-
-class CustomerInfo {
-  final String name;
-  final String phone;
-  final String? specialInstruction;
-
-  const CustomerInfo({
-    required this.name,
-    required this.phone,
-    this.specialInstruction,
-  });
-}
-
-class DeliveryOrder {
-  final String orderId;
-  final DeliveryStop pickup;
-  final DeliveryStop dropoff;
-  final PackageInfo package;
-  final CustomerInfo customer;
-  final double fareAmount;
-  final double distanceKm;
-  final int estimatedMinutes;
-  final PaymentMethod paymentMethod;
-  final int expiresInSeconds;
-
-  const DeliveryOrder({
-    required this.orderId,
-    required this.pickup,
-    required this.dropoff,
-    required this.package,
-    required this.customer,
-    required this.fareAmount,
-    required this.distanceKm,
-    required this.estimatedMinutes,
-    required this.paymentMethod,
-    this.expiresInSeconds = 30,
-  });
-}
-
-// Sample order for testing
-const sampleOrder = DeliveryOrder(
-  orderId: 'BT-20481',
-  fareAmount: 285,
-  distanceKm: 3.2,
-  estimatedMinutes: 18,
-  paymentMethod: PaymentMethod.cod,
-  expiresInSeconds: 30,
-  pickup: DeliveryStop(
-    label: 'Departure',
-    name: '7-Eleven EDSA Kamuning',
-    address: 'EDSA cor. Kamuning Rd, Quezon City',
-    note: 'Confirm with staff',
-  ),
-  dropoff: DeliveryStop(
-    label: 'Arrival',
-    name: 'SM North EDSA, The Annex',
-    address: 'North Ave, Quezon City, 1105',
-    note: 'Gate 3 — leave with guard',
-  ),
-  package: PackageInfo(
-    description: 'Grocery bundle (3 items)',
-    weightKg: 2.1,
-    size: 'Medium box',
-    tags: ['Fragile', 'Keep upright'],
-  ),
-  customer: CustomerInfo(
-    name: 'Juan Reyes',
-    phone: '+63 917 123 4567',
-    specialInstruction: 'Please call before dropping off',
-  ),
-);
-
-// ─────────────────────────────────────────────
-// Theme tokens
-// ─────────────────────────────────────────────
-
-class _T {
-  static const brand = Color(0xFF1A6BFF);
-  static const brandLight = Color(0xFFE8F0FF);
-  static const brandDark = Color(0xFF0A3FA3);
-  static const success = Color(0xFF12A05C);
-  static const successLight = Color(0xFFE1F7ED);
-  static const amber = Color(0xFFE07C00);
-  static const amberLight = Color(0xFFFFF3E0);
-  static const surface = Colors.white;
-  static const surface2 = Color(0xFFF5F5F7);
-  static const border = Color(0xFFE5E5EA);
-  static const text = Color(0xFF1C1C1E);
-  static const muted = Color(0xFF8E8E93);
-  static const hint = Color(0xFFAEAEB2);
-  static const tagFragileBg = Color(0xFFFFF3E0);
-  static const tagFragileText = Color(0xFFA05800);
-  static const tagHeavyBg = Color(0xFFF3E8FF);
-  static const tagHeavyText = Color(0xFF6B21A8);
-  static const red = Color(0xFFCC3300);
-  static const ff = 'SF Pro Display';
-}
-
-// ─────────────────────────────────────────────
-// Main Sheet
-// ─────────────────────────────────────────────
-
 class TicketOrderWidget extends StatefulWidget {
-  final DeliveryOrder order;
+  final TicketOrder order;
   final VoidCallback? onAccepted;
 
   const TicketOrderWidget({
@@ -168,28 +23,19 @@ class TicketOrderWidget extends StatefulWidget {
 
 class _TicketOrderWidgetState extends State<TicketOrderWidget>
     with TickerProviderStateMixin {
-  // Timer
-  late int _remaining;
-  Timer? _countdownTimer;
-
-  // Swipe state
   double _swipeFraction = 0.0;
 
-  // Accepted animation
   late AnimationController _acceptedController;
 
-  // Pulse animation for "New order" badge
   late AnimationController _pulseController;
   late Animation<double> _pulseAnim;
 
-  // Slide-in animation for the whole card
   late AnimationController _slideController;
   late Animation<Offset> _slideAnim;
 
   @override
   void initState() {
     super.initState();
-    _remaining = widget.order.expiresInSeconds;
 
     _pulseController = AnimationController(
       vsync: this,
@@ -236,14 +82,11 @@ class _TicketOrderWidgetState extends State<TicketOrderWidget>
     setState(() {
       _swipeFraction = 1.0;
     });
-    _countdownTimer?.cancel();
 
-    // Start accepted animation
     Future.delayed(const Duration(milliseconds: 200), () {
       _acceptedController.forward();
       widget.onAccepted?.call();
 
-      // After the accepted animation finishes, slide out card and show success
       _acceptedController.addStatusListener((final status) {
         if (status == AnimationStatus.completed) {
           _slideController.reverse().then((final _) {
@@ -274,7 +117,6 @@ class _TicketOrderWidgetState extends State<TicketOrderWidget>
 
   @override
   void dispose() {
-    _countdownTimer?.cancel();
     _pulseController.dispose();
     _acceptedController.dispose();
     _slideController.dispose();
@@ -285,14 +127,14 @@ class _TicketOrderWidgetState extends State<TicketOrderWidget>
   Widget build(final BuildContext context) {
     return SlideTransition(
       position: _slideAnim,
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+        child: Center(
           child: Container(
             decoration: BoxDecoration(
-              color: _T.surface,
+              color: AppColors.surface,
               borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: _T.border, width: 0.5),
+              border: Border.all(color: AppColors.border, width: 0.5),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -300,13 +142,13 @@ class _TicketOrderWidgetState extends State<TicketOrderWidget>
                 _buildHandle(),
                 _buildHeader(),
                 const _Divider(),
+                const SizedBox(height: 12),
                 _buildRoute(),
                 const SizedBox(height: 12),
                 _buildStats(),
-                const SizedBox(height: 10),
-                _buildPackage(),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 _buildCustomer(),
+                const SizedBox(height: 12),
                 const _Divider(),
                 _buildSwipe(),
                 const SizedBox(height: 4),
@@ -324,7 +166,7 @@ class _TicketOrderWidgetState extends State<TicketOrderWidget>
           width: 36,
           height: 4,
           decoration: BoxDecoration(
-            color: _T.border,
+            color: AppColors.border,
             borderRadius: BorderRadius.circular(2),
           ),
         ),
@@ -342,7 +184,7 @@ class _TicketOrderWidgetState extends State<TicketOrderWidget>
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color: _T.brandLight,
+                    color: AppColors.info,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
@@ -354,18 +196,18 @@ class _TicketOrderWidgetState extends State<TicketOrderWidget>
                           width: 7,
                           height: 7,
                           decoration: const BoxDecoration(
-                            color: _T.brand,
+                            color: AppColors.highlightInfo,
                             shape: BoxShape.circle,
                           ),
                         ),
                       ),
                       const SizedBox(width: 6),
                       const Text(
-                        'New ticket',
+                        'New ticket order',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: _T.brandDark,
+                          color: AppColors.textWhite,
                         ),
                       ),
                     ],
@@ -375,11 +217,11 @@ class _TicketOrderWidgetState extends State<TicketOrderWidget>
             ),
             const Spacer(),
             Text(
-              '#${widget.order.orderId}',
+              '#${widget.order.ticketNo}',
               style: const TextStyle(
                 fontSize: 11,
                 fontFamily: 'Courier',
-                color: _T.muted,
+                color: AppColors.primaryDark,
               ),
             ),
           ],
@@ -390,21 +232,21 @@ class _TicketOrderWidgetState extends State<TicketOrderWidget>
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Column(
           children: [
-            _StopRow(
-              stop: widget.order.pickup,
-              icon: '📦',
-              iconBg: _T.brandLight,
+            StopRow(
+              stop: widget.order.departure,
+              icon: Icons.local_shipping,
+              iconBg: AppColors.info,
               showLine: true,
-              noteBg: _T.brandLight,
-              noteText: _T.brandDark,
+              noteBg: AppColors.info,
+              noteText: AppColors.textWhite,
             ),
-            _StopRow(
-              stop: widget.order.dropoff,
-              icon: '📍',
-              iconBg: _T.successLight,
+            StopRow(
+              stop: widget.order.arrival,
+              icon: Icons.location_on,
+              iconBg: AppColors.successGradient.colors[0],
               showLine: false,
-              noteBg: _T.successLight,
-              noteText: const Color(0xFF0A6640),
+              noteBg: AppColors.successGradient.colors[0],
+              noteText: AppColors.textWhite,
             ),
           ],
         ),
@@ -414,72 +256,17 @@ class _TicketOrderWidgetState extends State<TicketOrderWidget>
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Row(
           children: [
-            _StatChip(
+            StatChip(
               label: 'Distance',
-              value: '${widget.order.distanceKm} km',
+              value: widget.order.distanceKm,
             ),
             const SizedBox(width: 8),
-            _StatChip(
+            StatChip(
               label: 'Est. time',
-              value: '${widget.order.estimatedMinutes} min',
+              value: widget.order.estimatedMinutes,
             ),
             const SizedBox(width: 8),
           ],
-        ),
-      );
-
-  Widget _buildPackage() => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: _T.surface2,
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: _T.amberLight,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Center(
-                    child: Text('📦', style: TextStyle(fontSize: 18))),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.order.package.description,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: _T.text,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '~${widget.order.package.weightKg} kg  ·  ${widget.order.package.size}',
-                      style: const TextStyle(fontSize: 12, color: _T.muted),
-                    ),
-                    if (widget.order.package.tags.isNotEmpty) ...[
-                      const SizedBox(height: 6),
-                      Wrap(
-                        spacing: 6,
-                        children: widget.order.package.tags
-                            .map((final t) => _Tag(label: t))
-                            .toList(),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ],
-          ),
         ),
       );
 
@@ -491,7 +278,7 @@ class _TicketOrderWidgetState extends State<TicketOrderWidget>
               width: 38,
               height: 38,
               decoration: const BoxDecoration(
-                color: _T.brandLight,
+                color: AppColors.primaryLight,
                 shape: BoxShape.circle,
               ),
               child: Center(
@@ -500,31 +287,41 @@ class _TicketOrderWidgetState extends State<TicketOrderWidget>
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: _T.brandDark,
+                    color: AppColors.primaryDark,
                   ),
                 ),
               ),
             ),
             const SizedBox(width: 10),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.order.customer.name,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: _T.text,
-                    ),
-                  ),
-                  if (widget.order.customer.specialInstruction != null)
-                    Text(
-                      '"${widget.order.customer.specialInstruction}"',
-                      style: const TextStyle(fontSize: 12, color: _T.muted),
-                    ),
-                ],
+              child: Text(
+                widget.order.customer.name,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
               ),
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.phone,
+                  size: 16,
+                  color: AppColors.textPrimary,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  widget.order.customer.phone,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(width: 4),
+              ],
             ),
           ],
         ),
@@ -549,7 +346,7 @@ class _TicketOrderWidgetState extends State<TicketOrderWidget>
                 child: Container(
                   height: 58,
                   decoration: BoxDecoration(
-                    color: _T.brandLight,
+                    color: AppColors.info,
                     borderRadius: BorderRadius.circular(29),
                   ),
                   child: Stack(
@@ -563,7 +360,7 @@ class _TicketOrderWidgetState extends State<TicketOrderWidget>
                         width: thumbOffset + 56,
                         height: 58,
                         decoration: BoxDecoration(
-                          color: _T.brand,
+                          color: AppColors.highlightInfo,
                           borderRadius: BorderRadius.circular(29),
                         ),
                       ),
@@ -577,7 +374,7 @@ class _TicketOrderWidgetState extends State<TicketOrderWidget>
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
-                              color: _T.brand,
+                              color: AppColors.textWhite,
                             ),
                           ),
                         ),
@@ -594,11 +391,11 @@ class _TicketOrderWidgetState extends State<TicketOrderWidget>
                           width: 48,
                           height: 48,
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: AppColors.backgroundWhite,
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.12),
+                                color: AppColors.primaryDark.withOpacity(0.12),
                                 blurRadius: 8,
                                 offset: const Offset(0, 2),
                               ),
@@ -621,7 +418,7 @@ class _TicketOrderWidgetState extends State<TicketOrderWidget>
           const SizedBox(height: 8),
           const Text(
             'Swipe right to accept this order',
-            style: TextStyle(fontSize: 12, color: _T.muted),
+            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
           ),
         ],
       ),
@@ -635,190 +432,9 @@ class _TicketOrderWidgetState extends State<TicketOrderWidget>
   }
 }
 
-// ─────────────────────────────────────────────
-// Sub-widgets
-// ─────────────────────────────────────────────
-
-class _StopRow extends StatelessWidget {
-  final DeliveryStop stop;
-  final String icon;
-  final Color iconBg;
-  final bool showLine;
-  final Color noteBg;
-  final Color noteText;
-
-  const _StopRow({
-    required this.stop,
-    required this.icon,
-    required this.iconBg,
-    required this.showLine,
-    required this.noteBg,
-    required this.noteText,
-  });
-
-  @override
-  Widget build(final BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Column(
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(color: iconBg, shape: BoxShape.circle),
-              child: Center(
-                  child: Text(icon, style: const TextStyle(fontSize: 15))),
-            ),
-            if (showLine)
-              Container(
-                width: 2,
-                height: 46,
-                margin: const EdgeInsets.symmetric(vertical: 3),
-                child: CustomPaint(painter: _DashedLinePainter()),
-              ),
-          ],
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.only(top: 4, bottom: 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  stop.label.toUpperCase(),
-                  style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.8,
-                    color: _T.muted,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  stop.name,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: _T.text,
-                  ),
-                ),
-                Text(
-                  stop.address,
-                  style: const TextStyle(fontSize: 12, color: _T.muted),
-                ),
-                if (stop.note != null) ...[
-                  const SizedBox(height: 5),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: noteBg,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      stop.note!,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        color: noteText,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _StatChip extends StatelessWidget {
-  final String label;
-  final String value;
-
-  const _StatChip({required this.label, required this.value});
-
-  @override
-  Widget build(final BuildContext context) => Expanded(
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-          decoration: BoxDecoration(
-            color: _T.surface2,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label,
-                  style: const TextStyle(fontSize: 11, color: _T.muted)),
-              const SizedBox(height: 2),
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  fontFamily: 'Courier',
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-}
-
-class _Tag extends StatelessWidget {
-  final String label;
-  const _Tag({required this.label});
-
-  @override
-  Widget build(final BuildContext context) {
-    final isFragile = label.toLowerCase() == 'fragile';
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: isFragile ? _T.tagFragileBg : _T.tagHeavyBg,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          color: isFragile ? _T.tagFragileText : _T.tagHeavyText,
-        ),
-      ),
-    );
-  }
-}
-
 class _Divider extends StatelessWidget {
   const _Divider();
   @override
   Widget build(final BuildContext context) =>
-      Container(height: 0.5, color: _T.border);
-}
-
-class _DashedLinePainter extends CustomPainter {
-  @override
-  void paint(final Canvas canvas, final Size size) {
-    const dashH = 5.0;
-    const gapH = 4.0;
-    final paint = Paint()
-      ..color = _T.border
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke;
-
-    var y = 0.0;
-    while (y < size.height) {
-      canvas.drawLine(Offset(0, y), Offset(0, y + dashH), paint);
-      y += dashH + gapH;
-    }
-  }
-
-  @override
-  bool shouldRepaint(final _) => false;
+      Container(height: 0.5, color: AppColors.border);
 }
