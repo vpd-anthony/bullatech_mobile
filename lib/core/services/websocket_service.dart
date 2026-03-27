@@ -1,13 +1,14 @@
 import 'dart:convert';
-import 'dart:developer';
-import 'dart:ffi';
+import 'package:bullatech/core/providers/google/route_provider.dart';
 import 'package:bullatech/features/ticket_list/domain/models/tickets/ticket_data_model.dart';
 import 'package:bullatech/features/ticket_list/domain/models/tickets/ticket_event_model.dart';
 import 'package:bullatech/features/ticket_list/presentation/mappers/customer_info_mapper.dart';
 import 'package:bullatech/features/ticket_list/presentation/mappers/technical_assign_location_mapper.dart';
 import 'package:bullatech/features/ticket_list/presentation/mappers/ticket_order_mapper.dart';
+import 'package:bullatech/features/ticket_list/presentation/screens/drive_home_screen.dart';
 import 'package:bullatech/features/ticket_list/presentation/widgets/ticket_order_widget.dart';
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/status.dart' as status;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -15,19 +16,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class WebSocketService {
   IOWebSocketChannel? _channel;
-
-  /// Channels to subscribe
   final List<String> _channels = ['tickets'];
-
-  /// Queue events before login
   final List<Map<String, dynamic>> _queuedEvents = [];
 
-  /// Connect to WebSocket immediately
   Future<void> connect(
     final GlobalKey<NavigatorState> navigatorKey,
-    final ProviderContainer container, // <-- Use ProviderContainer
+    final ProviderContainer container,
   ) async {
-    if (_channel != null) return; // Already connected
+    if (_channel != null) return;
 
     final scheme = dotenv.env['WS_SCHEME'];
     final host = dotenv.env['WS_HOST'];
@@ -46,28 +42,21 @@ class WebSocketService {
 
     _channel = IOWebSocketChannel.connect(url);
 
-    // Subscribe to channels
     for (final channel in _channels) {
-      final subscribeMessage = {
+      _channel!.sink.add(jsonEncode({
         'event': 'pusher:subscribe',
         'data': {'channel': channel}
-      };
-      _channel!.sink.add(jsonEncode(subscribeMessage));
+      }));
       debugPrint('[WebSocketService] Subscribed to channel: $channel');
     }
 
-    // Listen for incoming messages
     _channel!.stream.listen(
       (final message) {
         try {
           final decoded = jsonDecode(message);
-
           if (decoded['event'] == 'technical.assigned') {
             final rawData = decoded['data'];
-
-            // Laravel sends STRING sometimes
             final eventData = rawData is String ? jsonDecode(rawData) : rawData;
-
             _handleTicketTechnicalAssignedEvent(
               Map<String, dynamic>.from(eventData),
               navigatorKey,
@@ -91,7 +80,6 @@ class WebSocketService {
     debugPrint('WebSocketService connected and listening to channels.');
   }
 
-  /// Close connection
   void disconnect() {
     _channel?.sink.close(status.normalClosure);
     _channel = null;
@@ -108,6 +96,11 @@ class WebSocketService {
     try {
       final ticketEvent = TicketEvent.fromJson(data);
       final ticket = ticketEvent.ticket;
+
+      final loc = ticket.technicalAssignsLocation;
+      final departure = LatLng(loc!.departureLat, loc.departureLng);
+      final arrival = LatLng(loc.arrivalLat, loc.arrivalLng);
+
       final order = _mapToTicketOrder(ticket);
 
       showModalBottomSheet(
@@ -118,6 +111,17 @@ class WebSocketService {
           order: order,
           onAccepted: () {
             debugPrint('Ticket ${order.orderId} accepted');
+
+            final driverScreenState =
+                DriverHomeScreen.driverHomeKey.currentState;
+            final currentPos =
+                driverScreenState?.currentDriverPosition ?? departure;
+            driverScreenState?.drawRouteExternally(
+                currentPos, departure, arrival);
+
+            container
+                .read(activeRouteProvider.notifier)
+                .setRoute(departure, arrival);
           },
         ),
       );

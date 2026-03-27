@@ -15,6 +15,18 @@ class AppColors {
   static const Color secondaryLight = Color(0xFFFFB74D);
   static const Color secondaryDark = Color(0xFFF57C00);
 
+  // ========== Custom Colors (Merged from _C) ==========
+  static const Color bgMaps = Color(0xFF0A0F1E);
+  static const Color surfaceMaps = Color(0xFF111827);
+  static const Color borderMaps = Color(0xFF1F2D45);
+  static const Color successMaps = Color(0xFF10B981);
+  static const Color successGlow = Color(0x1A10B981);
+  static const Color textPrimaryMaps = Color(0xFFF1F5F9);
+  static const Color textSecondaryMaps = Color(0xFF94A3B8);
+  static const Color textMuted = Color(0xFF334155);
+  static const Color sheetBg = Color(0xFF111827);
+  static const Color sheetHandle = Color(0xFF2D3F58);
+
   // ========== Custom Colors ==========
   static const Color primaryIndigo = Color(0xFF6366F1);
   static const Color backgroundWhite = Colors.white;
