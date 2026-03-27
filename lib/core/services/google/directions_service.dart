@@ -15,46 +15,70 @@ class DirectionsService {
       throw Exception('Google Maps API key is not set in .env');
     }
 
-    final waypointsParam = waypoints != null && waypoints.isNotEmpty
-        ? '&waypoints=${waypoints.map((final w) => '${w.latitude},${w.longitude}').join('|')}'
+    /// ✅ Optimize waypoint order (better routing)
+    final waypointsParam = (waypoints != null && waypoints.isNotEmpty)
+        ? '&waypoints=optimize:true|${waypoints.map((final w) => '${w.latitude},${w.longitude}').join('|')}'
         : '';
 
-    final url = 'https://maps.googleapis.com/maps/api/directions/json'
-        '?origin=${origin.latitude},${origin.longitude}'
-        '&destination=${destination.latitude},${destination.longitude}'
-        '$waypointsParam'
-        '&key=$_apiKey';
+    final url = Uri.parse(
+      'https://maps.googleapis.com/maps/api/directions/json'
+      '?origin=${origin.latitude},${origin.longitude}'
+      '&destination=${destination.latitude},${destination.longitude}'
+      '$waypointsParam'
+      '&mode=driving'
+      '&alternatives=false'
+      '&key=$_apiKey',
+    );
 
-    final response = await http.get(Uri.parse(url));
+    final response = await http.get(url);
 
     if (response.statusCode != 200) {
-      throw Exception('Failed to fetch directions');
+      throw Exception('Failed to fetch directions: ${response.statusCode}');
     }
 
     final data = jsonDecode(response.body);
 
-    if (data['routes'].isEmpty) return [];
+    if (data['routes'] == null || data['routes'].isEmpty) {
+      return [];
+    }
 
-    final points = data['routes'][0]['overview_polyline']['points'];
+    /// 🔥 HIGH PRECISION: Use STEP polylines instead of overview
+    final legs = data['routes'][0]['legs'] as List;
 
-    return _decodePolyline(points);
+    final routePoints = <LatLng>[];
+
+    for (final leg in legs) {
+      final steps = leg['steps'] as List;
+
+      for (final step in steps) {
+        final encoded = step['polyline']['points'];
+        routePoints.addAll(_decodePolyline(encoded));
+      }
+    }
+
+    return routePoints;
   }
 
+  /// ✅ High-precision polyline decoder
   static List<LatLng> _decodePolyline(final String encoded) {
     final poly = <LatLng>[];
-    var index = 0, len = encoded.length;
-    var lat = 0, lng = 0;
 
-    while (index < len) {
-      int b, shift = 0, result = 0;
+    var index = 0;
+    var lat = 0;
+    var lng = 0;
 
+    while (index < encoded.length) {
+      var shift = 0;
+      var result = 0;
+
+      int b;
       do {
         b = encoded.codeUnitAt(index++) - 63;
         result |= (b & 0x1f) << shift;
         shift += 5;
       } while (b >= 0x20);
 
-      final dlat = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+      final dlat = (result & 1) != 0 ? ~(result >> 1) : (result >> 1);
       lat += dlat;
 
       shift = 0;
@@ -66,7 +90,7 @@ class DirectionsService {
         shift += 5;
       } while (b >= 0x20);
 
-      final dlng = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+      final dlng = (result & 1) != 0 ? ~(result >> 1) : (result >> 1);
       lng += dlng;
 
       poly.add(LatLng(lat / 1E5, lng / 1E5));

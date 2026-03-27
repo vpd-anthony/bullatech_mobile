@@ -15,7 +15,7 @@ class HelpdeskEmployeeShellRoutes {
           path: '/helpdesk/employee/ticket-list',
           pageBuilder: (final context, final state) => MaterialPage(
             key: state.pageKey,
-            child: const DriverHomeScreen(),
+            child: DriverHomeScreen(),
           ),
         ),
       ],

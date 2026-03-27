@@ -10,16 +10,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class DriverHomeScreen extends ConsumerStatefulWidget {
-  static final GlobalKey<_DriverHomeScreenState> driverHomeKey =
-      GlobalKey<_DriverHomeScreenState>();
+  static final GlobalKey<DriverHomeScreenState> driverHomeKey =
+      GlobalKey<DriverHomeScreenState>();
 
   DriverHomeScreen() : super(key: driverHomeKey);
 
   @override
-  ConsumerState<DriverHomeScreen> createState() => _DriverHomeScreenState();
+  ConsumerState<DriverHomeScreen> createState() => DriverHomeScreenState();
 }
 
-class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
+class DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     with TickerProviderStateMixin {
   GoogleMapController? _mapController;
   final Set<Marker> _markers = {};
@@ -29,6 +29,11 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
   AnimationController? _markerAnimController;
   Animation<double>? _markerAnim;
   (LatLng, LatLng)? _lastRoute;
+
+  List<LatLng> _fullRoutePoints = [];
+
+  late AnimationController _polylineAnimController;
+  late Animation<double> _polylineAnim;
 
   late AnimationController _pulseController;
   late AnimationController _ringController;
@@ -78,6 +83,16 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
       curve: Curves.easeOutCubic,
     );
     _idleSheetController.forward();
+
+    _polylineAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+
+    _polylineAnim = CurvedAnimation(
+      parent: _polylineAnimController,
+      curve: Curves.easeInOut,
+    )..addListener(_animatePolyline);
   }
 
   @override
@@ -87,6 +102,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     _pulseController.dispose();
     _ringController.dispose();
     _idleSheetController.dispose();
+    _polylineAnimController.dispose();
     super.dispose();
   }
 
@@ -115,8 +131,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
         _markers.add(Marker(
           markerId: const MarkerId('driver'),
           position: position,
-          icon:
-              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
           infoWindow: const InfoWindow(title: 'You'),
           zIndex: 2,
         ));
@@ -124,9 +139,32 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     });
   }
 
+  void _animatePolyline() {
+    if (_fullRoutePoints.isEmpty) return;
+
+    final count = (_fullRoutePoints.length * _polylineAnim.value).toInt();
+
+    final visiblePoints = _fullRoutePoints.take(count).toList();
+
+    setState(() {
+      _polylines
+        ..clear()
+        ..add(Polyline(
+          polylineId: const PolylineId('route'),
+          color: AppColors.info,
+          width: 5,
+          points: visiblePoints,
+        ));
+    });
+  }
+
   Future<void> _drawRoute(
-      final LatLng origin, final LatLng departure, final LatLng arrival) async {
+    final LatLng origin,
+    final LatLng departure,
+    final LatLng arrival,
+  ) async {
     if (_mapController == null) return;
+
     try {
       final points = await DirectionsService.getRoute(
         origin: origin,
@@ -134,33 +172,20 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
         waypoints: [departure],
       );
 
-      if (points.isEmpty) return;
-      if (!mounted) return;
+      if (points.isEmpty || !mounted) return;
+
+      /// 🔥 Smooth + dense route
+      _fullRoutePoints = _interpolate(points, 5);
+
+      /// 🔥 Animate polyline instead of instant draw
+      _polylineAnimController.forward(from: 0);
 
       setState(() {
-        _polylines
-          ..clear()
-          ..add(Polyline(
-            polylineId: const PolylineId('route'),
-            color: AppColors.info,
-            width: 5,
-            points: points,
-          ));
-
+        /// ❌ DO NOT remove driver marker (prevents flicker)
         _markers.removeWhere((final m) =>
-            m.markerId.value == 'driver' ||
-            m.markerId.value == 'departure' ||
-            m.markerId.value == 'arrival');
+            m.markerId.value == 'departure' || m.markerId.value == 'arrival');
 
         _markers.addAll([
-          Marker(
-            markerId: const MarkerId('driver'),
-            position: origin,
-            icon: BitmapDescriptor.defaultMarkerWithHue(
-                BitmapDescriptor.hueAzure),
-            infoWindow: const InfoWindow(title: 'You'),
-            zIndex: 2,
-          ),
           Marker(
             markerId: const MarkerId('departure'),
             position: departure,
@@ -178,6 +203,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
         ]);
       });
 
+      /// 📍 Fit camera AFTER route loads
       _fitBounds(points);
     } catch (e) {
       debugPrint('[Route] Error: $e');
@@ -209,23 +235,29 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
 
   void _clearRoute() {
     if (!mounted) return;
+
+    /// 🔥 Stop animation safely
+    _polylineAnimController.stop();
+
     setState(() {
       _polylines.clear();
-      _markers.removeWhere(
-        (final m) =>
-            m.markerId.value == 'departure' || m.markerId.value == 'arrival',
-      );
-      if (_currentDriverPosition != null) {
-        _updateDriverMarker(_currentDriverPosition!);
-      }
+      _fullRoutePoints.clear();
+
+      /// Remove only route markers
+      _markers.removeWhere((final m) =>
+          m.markerId.value == 'departure' || m.markerId.value == 'arrival');
     });
+
+    /// 🎯 Keep camera centered on driver
     if (_mapController != null && _currentDriverPosition != null) {
-      _mapController!.animateCamera(CameraUpdate.newCameraPosition(
-        CameraPosition(
-          target: _currentDriverPosition!,
-          zoom: AppConstants.defaultZoom,
+      _mapController!.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(
+            target: _currentDriverPosition!,
+            zoom: AppConstants.defaultZoom,
+          ),
         ),
-      ));
+      );
     }
   }
 
@@ -233,6 +265,27 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
   void drawRouteExternally(
       final LatLng origin, final LatLng departure, final LatLng arrival) {
     _drawRoute(origin, departure, arrival);
+  }
+
+  List<LatLng> _interpolate(final List<LatLng> points, final int factor) {
+    final result = <LatLng>[];
+
+    for (var i = 0; i < points.length - 1; i++) {
+      final start = points[i];
+      final end = points[i + 1];
+
+      for (var j = 0; j < factor; j++) {
+        final t = j / factor;
+
+        result.add(LatLng(
+          start.latitude + (end.latitude - start.latitude) * t,
+          start.longitude + (end.longitude - start.longitude) * t,
+        ));
+      }
+    }
+
+    result.add(points.last);
+    return result;
   }
 
   @override
@@ -245,7 +298,19 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
         if (_currentDriverPosition != position) {
           _prevDriverPosition = _currentDriverPosition ?? position;
           _currentDriverPosition = position;
-          if (_polylines.isEmpty) _markerAnimController?.forward(from: 0);
+
+          _markerAnimController?.forward(from: 0);
+
+          /// 🚨 Remove outdated route when driver moves
+          if (_polylines.isNotEmpty) {
+            _clearRoute();
+
+            if (route != null) {
+              WidgetsBinding.instance.addPostFrameCallback((final _) {
+                _drawRoute(_currentDriverPosition!, route.$1, route.$2);
+              });
+            }
+          }
         }
 
         if (_currentDriverPosition != null && route != null) {
